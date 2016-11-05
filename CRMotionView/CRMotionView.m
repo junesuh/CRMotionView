@@ -31,6 +31,8 @@ static const CGFloat CRMotionViewRotationFactor = 4.0f;
 @property (nonatomic, assign) CGFloat motionRate;
 @property (nonatomic, assign) NSInteger minimumXOffset;
 @property (nonatomic, assign) NSInteger maximumXOffset;
+@property (nonatomic, assign) NSInteger minimumYOffset;
+@property (nonatomic, assign) NSInteger maximumYOffset;
 @property (nonatomic, assign) BOOL stopTracking;
 
 @end
@@ -82,6 +84,7 @@ static const CGFloat CRMotionViewRotationFactor = 4.0f;
     
     
     _minimumXOffset = 0;
+    _minimumYOffset = 0;
     
     _motionEnabled = YES;
     _zoomEnabled   = YES;
@@ -250,13 +253,28 @@ static const CGFloat CRMotionViewRotationFactor = 4.0f;
     if (![_motionManager isGyroActive] && [_motionManager isGyroAvailable] ) {
         [_motionManager startGyroUpdatesToQueue:[NSOperationQueue currentQueue]
                                     withHandler:^(CMGyroData *gyroData, NSError *error) {
-                                        CGFloat rotationRate = isLandscape ? gyroData.rotationRate.x : gyroData.rotationRate.y;
-                                        if (fabs(rotationRate) >= CRMotionViewRotationMinimumTreshold) {
-                                            CGFloat offsetX = _scrollView.contentOffset.x - rotationRate * _motionRate;
+                                        CGFloat rotationRateX = isLandscape ? gyroData.rotationRate.x : gyroData.rotationRate.y;
+                                        CGFloat rotationRateY = isLandscape ? gyroData.rotationRate.y : gyroData.rotationRate.x;
+                                        
+                                        if (MIN(fabs(rotationRateX), fabs(rotationRateY)) >= CRMotionViewRotationMinimumTreshold)
+                                        {
+                                            /* set offsetX */
+                                            CGFloat offsetX = _scrollView.contentOffset.x - rotationRateX * _motionRate;
                                             if (offsetX > _maximumXOffset) {
                                                 offsetX = _maximumXOffset;
                                             } else if (offsetX < _minimumXOffset) {
                                                 offsetX = _minimumXOffset;
+                                            }
+                                            
+                                            /* set offsetY */
+                                            CGFloat offsetY = _scrollView.contentOffset.y - rotationRateY * _motionRate;
+                                            if (offsetY > _maximumYOffset)
+                                            {
+                                                offsetY = _maximumYOffset;
+                                            }
+                                            else if (offsetY < _minimumYOffset)
+                                            {
+                                                offsetY = _minimumYOffset;
                                             }
                                             
                                             if (!self.stopTracking) {
@@ -264,8 +282,8 @@ static const CGFloat CRMotionViewRotationFactor = 4.0f;
                                                                       delay:0.0f
                                                                     options:UIViewAnimationOptionBeginFromCurrentState | UIViewAnimationOptionAllowUserInteraction | UIViewAnimationOptionCurveEaseOut
                                                                  animations:^{
-                                                                     [_scrollView setContentOffset:CGPointMake(offsetX, 0) animated:NO];
-                                                                     self.zoomScrollView.startOffset = CGPointMake(offsetX, 0);
+                                                                     [_scrollView setContentOffset:CGPointMake(offsetX, offsetY) animated:NO];
+                                                                     self.zoomScrollView.startOffset = CGPointMake(offsetX, offsetY);
                                                                  }
                                                                  completion:nil];
                                             }
